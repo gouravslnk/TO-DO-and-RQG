@@ -3,6 +3,8 @@
 #include <ctime>
 #include <iomanip>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #define CLEAR_COMMAND "cls"
 
@@ -69,29 +71,90 @@ struct Task {
 class ToDo {
 private:
     vector<Task> tasks;
+    const string filename = "tasks.txt";
 
 public:
     void foraddt(const string& name, const tm& time) {
         tm time_copy = time;
         time_t Time1 = mktime(&time_copy);
         tasks.push_back({name, Time1});
+        saveTasks(); // Auto-save after adding
+        cout << GREEN << "Task added and saved successfully!" << RESET << endl;
     }
 
     void displayt() {
         system(CLEAR_COMMAND); // Clear screen
-        cout << "Tasks : \n";
-        for (size_t i = 0; i < tasks.size(); ++i) {
-            cout << "  " << i + 1 << ". " << tasks[i].name << " - Time : " << ctime(&tasks[i].time) <<endl;
+        cout << CYAN << "=============== TASKS ===============" << RESET << endl;
+        if (tasks.empty()) {
+            cout << YELLOW << "No tasks found. Add some tasks to get started!" << RESET << endl;
+        } else {
+            for (size_t i = 0; i < tasks.size(); ++i) {
+                cout << "  " << GREEN << i + 1 << "." << RESET << " " << tasks[i].name << endl;
+                cout << "     Due: " << BLUE << formatTime(tasks[i].time) << RESET << endl;
+            }
         }
+        cout << CYAN << "====================================" << RESET << endl;
     }
 
     void removet(int remove_task) {
         if (remove_task >= 0 && remove_task < tasks.size()) {
             tasks.erase(tasks.begin() + remove_task);
-            cout << "Task removed successfully.\n";
+            saveTasks(); // Auto-save after removing
+            cout << GREEN << "Task removed and saved successfully!" << RESET << endl;
         } else {
-            cout << "Invalid task number.\n";
+            cout << RED << "Invalid task number!" << RESET << endl;
         }
+    }
+
+    void saveTasks() {
+        ofstream file(filename);
+        if (!file) {
+            cout << RED << "Error: Unable to save tasks!" << RESET << endl;
+            return;
+        }
+        
+        for (const auto& task : tasks) {
+            // Save task name and time_t value
+            file << task.name << endl;
+            file << task.time << endl;
+        }
+        
+        file.close();
+    }
+
+    void loadTasks() {
+        ifstream file(filename);
+        if (!file) {
+            // File doesn't exist yet, no tasks to load
+            return;
+        }
+        
+        tasks.clear();
+        string name;
+        time_t taskTime;
+        
+        while (getline(file, name)) {
+            if (file >> taskTime) {
+                file.ignore(); // Ignore newline after reading time_t
+                tasks.push_back({name, taskTime});
+            }
+        }
+        
+        file.close();
+        if (!tasks.empty()) {
+            cout << GREEN << "Loaded " << tasks.size() << " task(s) from file." << RESET << endl;
+        }
+    }
+
+    string formatTime(time_t t) {
+        tm* timeinfo = localtime(&t);
+        char buffer[80];
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M", timeinfo);
+        return string(buffer);
+    }
+
+    bool hasTasks() const {
+        return !tasks.empty();
     }
 };
 
@@ -131,6 +194,11 @@ int main() {
 
     // Seed the random number generator
     srand(time(nullptr));
+
+    // Load saved tasks from file
+    cout << CYAN << "Loading tasks..." << RESET << endl;
+    obj2.loadTasks();
+    cout << endl;
 
     do {
         system(CLEAR_COMMAND); // Clear screen
@@ -183,6 +251,11 @@ int main() {
                             obj2.displayt();
                             break;
                         case 3: {
+                            if (!obj2.hasTasks()) {
+                                cout << YELLOW << "\nNo tasks to remove!" << RESET << endl;
+                                break;
+                            }
+                            obj2.displayt();
                             int remove_task;
                             cout << "\nEnter index of task to remove : ";
                             cin >> remove_task;
@@ -217,7 +290,7 @@ int main() {
             }
 
             case 3:
-                cout << "\nExiting...\n";
+                cout << GREEN << "\nAll tasks saved. Exiting...\n" << RESET;
                 break;
             default:
                 cout << "\nInvalid choice. Please try again.\n";
