@@ -2,6 +2,10 @@
 
 This is a C++ console application that combines a task manager and a random quote generator. The task manager allows users to add, display, and remove tasks with specified dates and times. The quote generator provides random movie quotes from a predefined list.
 
+##  Demo
+
+![Task Manager Demo](todo.gif)
+
 ## Features
 
 - **Task Manager:**
